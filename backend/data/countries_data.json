@@ -1,0 +1,52 @@
+{
+  "Germany": {
+    "gdp": 4163.6,
+    "flag": "https://flagcdn.com/w320/de.png",
+    "top_export": "Machinery"
+  },
+  "Brazil": {
+    "gdp": 1951.92,
+    "flag": "https://flagcdn.com/w320/br.png",
+    "top_export": "Soybeans"
+  },
+  "China": {
+    "gdp": 17881.78,
+    "flag": "https://flagcdn.com/w320/cn.png",
+    "top_export": "Electronics"
+  },
+  "Canada": {
+    "gdp": 2161.48,
+    "flag": "https://flagcdn.com/w320/ca.png",
+    "top_export": "Oil"
+  },
+  "India": {
+    "gdp": 3353.47,
+    "flag": "https://flagcdn.com/w320/in.png",
+    "top_export": "Software Services"
+  },
+  "Japan": {
+    "gdp": 4256.41,
+    "flag": "https://flagcdn.com/w320/jp.png",
+    "top_export": "Vehicles"
+  },
+  "Italy": {
+    "gdp": 2103.0,
+    "flag": "https://flagcdn.com/w320/it.png",
+    "top_export": "Fashion"
+  },
+  "United States": {
+    "gdp": 26006.89,
+    "flag": "https://flagcdn.com/w320/us.png",
+    "top_export": "Aircraft"
+  },
+  "United Kingdom": {
+    "gdp": 3114.04,
+    "flag": "https://flagcdn.com/w320/gb.png",
+    "top_export": "Financial Services"
+  },
+  "France": {
+    "gdp": 2796.3,
+    "flag": "https://flagcdn.com/w320/fr.png",
+    "top_export": "Aircraft"
+  }
+}
