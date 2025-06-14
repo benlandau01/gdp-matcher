@@ -1,4 +1,6 @@
-#!/Users/benlandau/Documents/GitHub/gdp-matcher/backend/venv/bin/python3
+#!/bin/sh
+'''exec' "/Applications/Machine Learning Specialization/AI Playground/gdp-matcher/backend/venv/bin/python3" "$0" "$@"
+' '''
 # -*- coding: utf-8 -*-
 import re
 import sys

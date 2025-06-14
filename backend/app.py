@@ -8,15 +8,30 @@ app = Flask(__name__)
 CORS(app)
 
 # Load country data
-DATA_FILE = Path(__file__).parent / 'data' / 'countries_data.json'
+DATA_FILE = Path(__file__).parent / 'data' / 'game_data_with_flags.json'
 
 def load_country_data():
     with open(DATA_FILE, 'r') as f:
-        return json.load(f)
+        data = json.load(f)
+        # Convert array to dictionary with country names as keys
+        return {item['country']: {
+            'gdp': item.get('GDP', 'N/A'),
+            'flag': item.get('flag_url', ''),
+            'top_export': item.get('top_export', 'N/A')
+        } for item in data if 'country' in item}
 
 def get_random_countries(count=5):
     data = load_country_data()
-    selected_countries = random.sample(list(data.items()), count)
+    if not data:
+        return {
+            'countries': [],
+            'gdps': [],
+            'flags': [],
+            'exports': [],
+            'correct_matches': {}
+        }
+    
+    selected_countries = random.sample(list(data.items()), min(count, len(data)))
     
     # Create shuffled columns
     countries = [country for country, _ in selected_countries]

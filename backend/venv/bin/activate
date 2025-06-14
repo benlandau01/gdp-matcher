@@ -37,7 +37,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV="/Users/benlandau/Documents/GitHub/gdp-matcher/backend/venv"
+VIRTUAL_ENV="/Applications/Machine Learning Specialization/AI Playground/gdp-matcher/backend/venv"
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
