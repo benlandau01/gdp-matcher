@@ -4,8 +4,6 @@ An interactive web application where players match countries with their GDP, fla
 
 ## Features
 
-- Interactive drag-and-drop interface
-- Real-time validation of matches
 - Beautiful UI with country flags
 - Data from reliable sources (World Bank, BACI, Flagpedia)
 - Score tracking and replay functionality
