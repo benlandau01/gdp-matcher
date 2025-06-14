@@ -20,9 +20,23 @@ def load_country_data():
             'top_export': item.get('top_export', 'N/A')
         } for item in data if 'country' in item}
 
-def get_random_countries(count=5):
+def filter_countries_by_difficulty(data, difficulty):
+    if difficulty == 'easy':
+        # Filter for countries with GDP > $500B
+        return {country: info for country, info in data.items() 
+                if isinstance(info['gdp'], (int, float)) and info['gdp'] > 500_000_000_000}
+    elif difficulty == 'medium':
+        # Filter for countries with GDP > $10B
+        return {country: info for country, info in data.items() 
+                if isinstance(info['gdp'], (int, float)) and info['gdp'] > 10_000_000_000}
+    else:  # hard mode
+        return data
+
+def get_random_countries(count=5, difficulty='medium'):
     data = load_country_data()
-    if not data:
+    filtered_data = filter_countries_by_difficulty(data, difficulty)
+    
+    if not filtered_data:
         return {
             'countries': [],
             'gdps': [],
@@ -31,7 +45,7 @@ def get_random_countries(count=5):
             'correct_matches': {}
         }
     
-    selected_countries = random.sample(list(data.items()), min(count, len(data)))
+    selected_countries = random.sample(list(filtered_data.items()), min(count, len(filtered_data)))
     
     # Create shuffled columns
     countries = [country for country, _ in selected_countries]
@@ -61,7 +75,8 @@ def get_random_countries(count=5):
 
 @app.route('/api/game', methods=['GET'])
 def get_game_data():
-    return jsonify(get_random_countries())
+    difficulty = request.args.get('difficulty', 'medium')
+    return jsonify(get_random_countries(difficulty=difficulty))
 
 @app.route('/api/validate_matches', methods=['POST'])
 def validate_matches():

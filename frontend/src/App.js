@@ -10,16 +10,45 @@ import {
   CardContent,
   Snackbar,
   Alert,
+  ThemeProvider,
+  createTheme,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000';
+
+// Create a theme with Arial font
+const theme = createTheme({
+  typography: {
+    fontFamily: 'Arial, sans-serif',
+  },
+});
+
+function formatGDP(value) {
+  if (value >= 1_000_000_000_000) {
+    const trillions = value / 1_000_000_000_000;
+    return `$${trillions.toPrecision(3)}T`;
+  } else if (value >= 1_000_000_000) {
+    const billions = value / 1_000_000_000;
+    return `$${billions.toPrecision(3)}B`;
+  } else if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    return `$${millions.toPrecision(3)}M`;
+  } else {
+    return `$${value.toPrecision(3)}`;
+  }
+}
 
 function App() {
   const [gameData, setGameData] = useState(null);
   const [matches, setMatches] = useState({});
   const [feedback, setFeedback] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [error, setError] = useState(null);
+  const [difficulty, setDifficulty] = useState('medium');
   const [selectedItems, setSelectedItems] = useState({
     countries: null,
     gdps: null,
@@ -28,9 +57,29 @@ function App() {
   });
   const [correctMatches, setCorrectMatches] = useState({});
 
-  const fetchGameData = async () => {
+  const handleDifficultyChange = (event, newDifficulty) => {
+    if (newDifficulty !== null) {
+      setDifficulty(newDifficulty);
+      // Reset game state when difficulty changes
+      setMatches({});
+      setFeedback(null);
+      setShowFeedback(false);
+      setShowCompletion(false);
+      setCorrectMatches({});
+      setSelectedItems({
+        countries: null,
+        gdps: null,
+        flags: null,
+        exports: null,
+      });
+      fetchGameData(newDifficulty);
+    }
+  };
+
+  const fetchGameData = async (selectedDifficulty = difficulty) => {
     try {
-      const response = await axios.get(`${API_URL}/api/game`);
+      setError(null);
+      const response = await axios.get(`${API_URL}/api/game?difficulty=${selectedDifficulty}`);
       setGameData(response.data);
       setMatches({});
       setFeedback(null);
@@ -43,6 +92,7 @@ function App() {
       setCorrectMatches({});
     } catch (error) {
       console.error('Error fetching game data:', error);
+      setError('Failed to load game data. Please make sure the backend server is running.');
     }
   };
 
@@ -51,10 +101,36 @@ function App() {
   }, []);
 
   const handleItemClick = (type, index) => {
-    setSelectedItems(prev => ({
-      ...prev,
-      [type]: prev[type] === index ? null : index
-    }));
+    setSelectedItems(prev => {
+      const newSelected = {
+        ...prev,
+        [type]: prev[type] === index ? null : index
+      };
+      
+      // If we have a complete set of selections, create the match
+      if (Object.values(newSelected).every(item => item !== null)) {
+        const country = gameData.countries[newSelected.countries];
+        const gdp = gameData.gdps[newSelected.gdps];
+        const flag = gameData.flags[newSelected.flags];
+        const export_item = gameData.exports[newSelected.exports];
+        
+        setMatches(prevMatches => ({
+          ...prevMatches,
+          [country]: {
+            gdp,
+            flag,
+            top_export: export_item,
+            indices: {
+              gdp: newSelected.gdps,
+              flag: newSelected.flags,
+              export: newSelected.exports
+            }
+          }
+        }));
+      }
+      
+      return newSelected;
+    });
   };
 
   const handleSubmit = async () => {
@@ -67,40 +143,80 @@ function App() {
       setShowFeedback(true);
 
       // Update correct matches for visual feedback
-      const newCorrectMatches = {};
+      const newCorrectMatches = { ...correctMatches }; // Preserve existing correct matches
       Object.entries(response.data.feedback).forEach(([country, data]) => {
         if (data.score === 3) { // All matches are correct
           newCorrectMatches[country] = true;
         }
       });
       setCorrectMatches(newCorrectMatches);
+
+      // Check if all matches are correct
+      if (Object.keys(newCorrectMatches).length === 5) {
+        setShowCompletion(true);
+      }
+
+      // Clear current selections after submission
+      setSelectedItems({
+        countries: null,
+        gdps: null,
+        flags: null,
+        exports: null,
+      });
     } catch (error) {
       console.error('Error submitting matches:', error);
     }
+  };
+
+  const handleNewGame = () => {
+    setShowCompletion(false);
+    fetchGameData();
   };
 
   const renderColumn = (type, items) => (
     <Box sx={{ minHeight: 400, p: 2 }}>
       {items.map((item, index) => {
         const isSelected = selectedItems[type] === index;
-        const isCorrect = Object.values(correctMatches).some(match => match);
+        
+        // Determine if this item is part of a correct match
+        let isPartOfCorrectMatch = false;
+        if (type === 'countries') {
+          isPartOfCorrectMatch = correctMatches[item] === true;
+        } else {
+          // For other columns, check if they're part of any correct match
+          Object.entries(correctMatches).forEach(([country, isCorrect]) => {
+            if (isCorrect) {
+              const correctData = gameData.correct_matches[country];
+              const matchData = matches[country];
+              if (matchData && matchData.indices) {
+                // Check both the value and the index to ensure uniqueness
+                if (item === correctData[type === 'gdps' ? 'gdp' : type === 'flags' ? 'flag' : 'top_export'] &&
+                    index === matchData.indices[type === 'gdps' ? 'gdp' : type === 'flags' ? 'flag' : 'export']) {
+                  isPartOfCorrectMatch = true;
+                }
+              }
+            }
+          });
+        }
         
         return (
           <Card
             key={`${type}-${index}`}
-            onClick={() => handleItemClick(type, index)}
+            onClick={() => !isPartOfCorrectMatch && handleItemClick(type, index)}
             sx={{
               mb: 2,
-              cursor: 'pointer',
+              cursor: isPartOfCorrectMatch ? 'default' : 'pointer',
               height: '100px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: isSelected ? '3px solid #4caf50' : '3px solid transparent',
-              backgroundColor: isCorrect ? 'rgba(76, 175, 80, 0.1)' : 'white',
+              border: '2px solid #D0D0D0',
+              backgroundColor: isPartOfCorrectMatch ? '#157000' : isSelected ? '#4CAF50' : '#f9f9f9',
+              color: isPartOfCorrectMatch ? 'white' : 'inherit',
               '&:hover': {
-                boxShadow: 3,
+                boxShadow: isPartOfCorrectMatch ? 0 : 3,
               },
+              opacity: isPartOfCorrectMatch ? 1 : 1,
             }}
           >
             <CardContent sx={{ width: '100%', textAlign: 'center' }}>
@@ -117,11 +233,11 @@ function App() {
               ) : (
                 <Typography
                   sx={{
-                    fontSize: type === 'gdps' ? '1.1rem' : '1.2rem',
+                    fontSize: type === 'gdps' ? '1.1rem' : type === 'exports' ? '0.6rem' : '1.2rem',
                     fontWeight: type === 'gdps' ? 'bold' : 'normal',
                   }}
                 >
-                  {item}
+                  {type === 'gdps' ? formatGDP(Number(item)) : item}
                 </Typography>
               )}
             </CardContent>
@@ -131,84 +247,155 @@ function App() {
     </Box>
   );
 
-  if (!gameData) return <Typography>Loading...</Typography>;
+  if (error) return <Typography color="error">{error}</Typography>;
+  if (!gameData) return <Typography>Loading game data...</Typography>;
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h3" component="h1" gutterBottom align="center">
-        GDP Matcher Game
-      </Typography>
-
-      <Grid container spacing={2}>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3}>
-            <Typography variant="h6" p={2}>
-              Countries
-            </Typography>
-            {renderColumn('countries', gameData.countries)}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3}>
-            <Typography variant="h6" p={2}>
-              GDP (Billions USD)
-            </Typography>
-            {renderColumn('gdps', gameData.gdps)}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3}>
-            <Typography variant="h6" p={2}>
-              Flags
-            </Typography>
-            {renderColumn('flags', gameData.flags)}
-          </Paper>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Paper elevation={3}>
-            <Typography variant="h6" p={2}>
-              Top Exports
-            </Typography>
-            {renderColumn('exports', gameData.exports)}
-          </Paper>
-        </Grid>
-      </Grid>
-
-      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={Object.keys(matches).length === 0}
-          sx={{ minWidth: '120px' }}
+    <ThemeProvider theme={theme}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography 
+          variant="h3" 
+          component="h1" 
+          gutterBottom 
+          align="center"
+          sx={{ color: 'navy' }}
         >
-          Submit Matches
-        </Button>
-        <Button
-          variant="outlined"
-          onClick={fetchGameData}
-          sx={{ minWidth: '120px' }}
-        >
-          New Game
-        </Button>
-      </Box>
+          GDP Matcher Game
+        </Typography>
 
-      <Snackbar
-        open={showFeedback}
-        autoHideDuration={6000}
-        onClose={() => setShowFeedback(false)}
-      >
-        <Alert
+        <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+          <ToggleButtonGroup
+            value={difficulty}
+            exclusive
+            onChange={handleDifficultyChange}
+            aria-label="game difficulty"
+          >
+            <ToggleButton value="easy" aria-label="easy mode">
+              Easy (GDP &gt; $500B)
+            </ToggleButton>
+            <ToggleButton value="medium" aria-label="medium mode">
+              Medium (GDP &gt; $10B)
+            </ToggleButton>
+            <ToggleButton value="hard" aria-label="hard mode">
+              Hard (All Countries)
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={3}>
+            <Paper elevation={3}>
+              <Typography 
+                variant="h6" 
+                p={2} 
+                align="center"
+                sx={{ color: '#1695ff' }} // Light blue
+              >
+                Country
+              </Typography>
+              {renderColumn('countries', gameData.countries)}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper elevation={3}>
+              <Typography 
+                variant="h6" 
+                p={2} 
+                align="center"
+                sx={{ color: '#1695ff' }} // Light blue
+              >
+                GDP (USD)
+              </Typography>
+              {renderColumn('gdps', gameData.gdps)}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper elevation={3}>
+              <Typography 
+                variant="h6" 
+                p={2} 
+                align="center"
+                sx={{ color: '#1695ff' }} // Light blue
+              >
+                Flag
+              </Typography>
+              {renderColumn('flags', gameData.flags)}
+            </Paper>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Paper elevation={3}>
+              <Typography 
+                variant="h6" 
+                p={2} 
+                align="center"
+                sx={{ color: '#1695ff' }} // Light blue
+              >
+                Top Export
+              </Typography>
+              {renderColumn('exports', gameData.exports)}
+            </Paper>
+          </Grid>
+        </Grid>
+
+        <Box sx={{ mt: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={Object.values(selectedItems).some(item => item === null)}
+            sx={{ minWidth: '120px' }}
+          >
+            Submit Matches
+          </Button>
+          <Button
+            variant="outlined"
+            onClick={() => fetchGameData()}
+            sx={{ minWidth: '120px' }}
+          >
+            New Game
+          </Button>
+        </Box>
+
+        <Snackbar
+          open={showFeedback}
+          autoHideDuration={3000}
           onClose={() => setShowFeedback(false)}
-          severity={feedback?.total_score === feedback?.max_score ? 'success' : 'info'}
-          sx={{ width: '100%' }}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         >
-          {feedback
-            ? `Score: ${feedback.total_score}/${feedback.max_score}`
-            : 'Error submitting matches'}
-        </Alert>
-      </Snackbar>
-    </Container>
+          <Alert severity="success" onClose={() => setShowFeedback(false)}>
+            {Object.keys(correctMatches).length}/5 matches correct
+          </Alert>
+        </Snackbar>
+
+        <Snackbar
+          open={showCompletion}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert 
+            severity="success" 
+            onClose={() => setShowCompletion(false)}
+            sx={{ 
+              width: '100%',
+              '& .MuiAlert-message': {
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2
+              }
+            }}
+          >
+            <span>Great job! Do you want to play again?</span>
+            <Button 
+              variant="contained" 
+              size="small" 
+              onClick={handleNewGame}
+              sx={{ ml: 2 }}
+            >
+              Play Again
+            </Button>
+          </Alert>
+        </Snackbar>
+      </Container>
+    </ThemeProvider>
   );
 }
 
