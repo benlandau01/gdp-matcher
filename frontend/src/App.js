@@ -19,10 +19,34 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000';
 
-// Create a theme with Arial font
+// Create a theme with Inter font
 const theme = createTheme({
   typography: {
-    fontFamily: 'Arial, sans-serif',
+    fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
+    h3: {
+      fontWeight: 600,
+    },
+    h6: {
+      fontWeight: 500,
+    },
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
+          fontWeight: 500,
+        },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: {
+          fontFamily: '"Inter", "Helvetica", "Arial", sans-serif',
+          fontWeight: 500,
+        },
+      },
+    },
   },
 });
 
@@ -41,6 +65,12 @@ function formatGDP(value) {
   }
 }
 
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
 function App() {
   const [gameData, setGameData] = useState(null);
   const [matches, setMatches] = useState({});
@@ -56,6 +86,19 @@ function App() {
     exports: null,
   });
   const [correctMatches, setCorrectMatches] = useState({});
+  const [timer, setTimer] = useState(0);
+  const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+
+  useEffect(() => {
+    let interval;
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setTimer(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isTimerRunning]);
 
   const handleDifficultyChange = (event, newDifficulty) => {
     if (newDifficulty !== null) {
@@ -72,6 +115,9 @@ function App() {
         flags: null,
         exports: null,
       });
+      setTimer(0);
+      setIsTimerRunning(false);
+      setGameStarted(false);
       fetchGameData(newDifficulty);
     }
   };
@@ -90,6 +136,9 @@ function App() {
         exports: null,
       });
       setCorrectMatches({});
+      setTimer(0);
+      setIsTimerRunning(true);
+      setGameStarted(true);
     } catch (error) {
       console.error('Error fetching game data:', error);
       setError('Failed to load game data. Please make sure the backend server is running.');
@@ -154,6 +203,7 @@ function App() {
       // Check if all matches are correct
       if (Object.keys(newCorrectMatches).length === 5) {
         setShowCompletion(true);
+        setIsTimerRunning(false); // Stop the timer when all matches are correct
       }
 
       // Clear current selections after submission
@@ -253,15 +303,27 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Typography 
-          variant="h3" 
-          component="h1" 
-          gutterBottom 
-          align="center"
-          sx={{ color: 'navy' }}
-        >
-          GDP Matcher Game
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+          <Typography 
+            variant="h3" 
+            component="h1"
+            sx={{ color: 'navy' }}
+          >
+            GDP Matcher Game
+          </Typography>
+          {gameStarted && (
+            <Typography 
+              variant="h4" 
+              sx={{ 
+                fontFamily: 'monospace',
+                color: 'navy',
+                fontWeight: 600
+              }}
+            >
+              {formatTime(timer)}
+            </Typography>
+          )}
+        </Box>
 
         <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
           <ToggleButtonGroup
