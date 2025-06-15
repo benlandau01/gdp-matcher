@@ -20,42 +20,10 @@ CORS(app, resources={
 })
 
 # Load country data
-def get_data_file_path():
-    # Try multiple possible locations for the data file
-    possible_paths = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'game_data_with_flags.json'),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'game_data_with_flags.json'),
-        '/opt/render/project/src/data/game_data_with_flags.json',
-        '/opt/render/project/src/game_data_with_flags.json'
-    ]
-    
-    for path in possible_paths:
-        logger.info(f"Checking for data file at: {path}")
-        if os.path.exists(path):
-            logger.info(f"Found data file at: {path}")
-            return path
-    
-    # If file not found, try to list directory contents for debugging
-    for base_path in set(os.path.dirname(p) for p in possible_paths):
-        if os.path.exists(base_path):
-            logger.info(f"Contents of {base_path}:")
-            try:
-                for item in os.listdir(base_path):
-                    logger.info(f"  - {item}")
-            except Exception as e:
-                logger.error(f"Error listing directory {base_path}: {e}")
-    
-    logger.error("Data file not found in any of the expected locations")
-    return None
-
-DATA_FILE = get_data_file_path()
+DATA_FILE = 'data/game_data_with_flags.json'
 logger.info(f"Using data file path: {DATA_FILE}")
 
 def load_country_data():
-    if not DATA_FILE:
-        logger.error("No data file path available")
-        return {}
-        
     try:
         logger.info("Attempting to load country data...")
         with open(DATA_FILE, 'r') as f:
@@ -70,6 +38,17 @@ def load_country_data():
     except Exception as e:
         logger.error(f"Error loading data file: {e}")
         logger.error(f"Attempted to load from: {DATA_FILE}")
+        # List current directory contents for debugging
+        try:
+            logger.info("Current directory contents:")
+            for item in os.listdir('.'):
+                logger.info(f"  - {item}")
+            if os.path.exists('data'):
+                logger.info("Data directory contents:")
+                for item in os.listdir('data'):
+                    logger.info(f"  - {item}")
+        except Exception as dir_error:
+            logger.error(f"Error listing directory contents: {dir_error}")
         return {}
 
 def filter_countries_by_difficulty(data, difficulty):
