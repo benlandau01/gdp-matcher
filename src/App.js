@@ -187,16 +187,8 @@ function App() {
       setLoadingMessage('Waking up the server... This may take up to a minute on first load.');
       setError(null);
       
-      // Force absolute URL
-      const url = new URL('/api/game', API_URL);
-      url.searchParams.append('difficulty', selectedDifficulty);
-      const fullUrl = url.toString();
-      
-      console.log('Environment:', process.env.NODE_ENV);
-      console.log('API URL:', API_URL);
-      console.log('Full request URL:', fullUrl);
-      
-      const config = {
+      // Use API_URL directly with axios
+      const response = await axios.get(`/api/game?difficulty=${selectedDifficulty}`, {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
@@ -206,10 +198,10 @@ function App() {
         validateStatus: function (status) {
           return status >= 200 && status < 500;
         }
-      };
+      });
       
-      console.log('Making request with config:', config);
-      const response = await axios.get(fullUrl, config);
+      console.log('Environment:', process.env.NODE_ENV);
+      console.log('API URL:', API_URL);
       console.log('Response status:', response.status);
       console.log('Response headers:', response.headers);
       console.log('Game data received successfully:', response.data);
