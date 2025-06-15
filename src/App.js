@@ -17,8 +17,8 @@ import {
 } from '@mui/material';
 import axios from 'axios';
 
-// Use Render backend URL
-const API_URL = 'https://gdp-matcher.onrender.com';
+// Use environment variable for API URL with fallback
+const API_URL = process.env.REACT_APP_API_URL || 'https://gdp-matcher.onrender.com';
 
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;
