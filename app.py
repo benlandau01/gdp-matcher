@@ -10,7 +10,26 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with specific settings
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://gdp-matcher.vercel.app",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
+
+# Log all requests
+@app.before_request
+def log_request_info():
+    logger.info('Headers: %s', request.headers)
+    logger.info('Body: %s', request.get_data())
 
 # Load country data
 DATA_FILE = 'data/game_data_with_flags.json'
@@ -81,11 +100,13 @@ def get_random_countries(count=5, difficulty='medium'):
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
+    logger.info('Health check requested')
     return jsonify({"status": "healthy"}), 200
 
 @app.route('/api/game', methods=['GET'])
 def get_game_data():
     try:
+        logger.info('Game data requested')
         difficulty = request.args.get('difficulty', 'medium')
         data = get_random_countries(difficulty=difficulty)
         return jsonify(data)
@@ -96,6 +117,7 @@ def get_game_data():
 @app.route('/api/validate_matches', methods=['POST'])
 def validate_matches():
     try:
+        logger.info('Validate matches requested')
         data = request.json
         matches = data['matches']
         correct_matches = data['correct_matches']
@@ -132,4 +154,5 @@ def validate_matches():
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
+    logger.info(f"Starting server on port {port}")
     app.run(host='0.0.0.0', port=port) 
