@@ -20,10 +20,32 @@ CORS(app, resources={
 })
 
 # Load country data
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'game_data_with_flags.json')
-logger.info(f"Data file path: {DATA_FILE}")
+def get_data_file_path():
+    # Try multiple possible locations for the data file
+    possible_paths = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'game_data_with_flags.json'),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), 'game_data_with_flags.json'),
+        '/opt/render/project/src/data/game_data_with_flags.json',
+        '/opt/render/project/src/game_data_with_flags.json'
+    ]
+    
+    for path in possible_paths:
+        logger.info(f"Checking for data file at: {path}")
+        if os.path.exists(path):
+            logger.info(f"Found data file at: {path}")
+            return path
+    
+    logger.error("Data file not found in any of the expected locations")
+    return None
+
+DATA_FILE = get_data_file_path()
+logger.info(f"Using data file path: {DATA_FILE}")
 
 def load_country_data():
+    if not DATA_FILE:
+        logger.error("No data file path available")
+        return {}
+        
     try:
         logger.info("Attempting to load country data...")
         with open(DATA_FILE, 'r') as f:
