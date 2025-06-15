@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: gdp-matcher-backend
+    env: python
+    buildCommand: pip install pipenv && pipenv install
+    startCommand: pipenv run gunicorn app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
+    healthCheckPath: /api/game?difficulty=medium
+    autoDeploy: true 
