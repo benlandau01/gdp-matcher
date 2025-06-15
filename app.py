@@ -10,6 +10,10 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Log directory information
+logger.info(f"Current working directory: {os.getcwd()}")
+logger.info(f"Application directory: {os.path.dirname(os.path.abspath(__file__))}")
+
 app = Flask(__name__)
 CORS(app, resources={
     r"/*": {
@@ -22,6 +26,7 @@ CORS(app, resources={
 # Load country data
 DATA_FILE = 'data/game_data_with_flags.json'
 logger.info(f"Using data file path: {DATA_FILE}")
+logger.info(f"Absolute data file path: {os.path.abspath(DATA_FILE)}")
 
 def load_country_data():
     try:
