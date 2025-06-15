@@ -29,16 +29,6 @@ axios.defaults.headers.common['Accept'] = 'application/json';
 axios.defaults.headers.common['Content-Type'] = 'application/json';
 axios.defaults.headers.common['Cache-Control'] = 'no-cache';
 
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache'
-  }
-});
-
 // Create a theme with Inter font
 const theme = createTheme({
   typography: {
@@ -197,8 +187,18 @@ function App() {
       setLoadingMessage('Waking up the server... This may take up to a minute on first load.');
       setError(null);
       
-      console.log('Making request to:', `${API_URL}/api/game?difficulty=${selectedDifficulty}`);
-      const response = await api.get(`/api/game?difficulty=${selectedDifficulty}`, {
+      // Log the current API URL and request details
+      console.log('Current API_URL:', API_URL);
+      console.log('Current axios.defaults.baseURL:', axios.defaults.baseURL);
+      
+      // Make the request using the configured baseURL
+      const response = await axios.get('/api/game', {
+        params: { difficulty: selectedDifficulty },
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
         timeout: 30000,
         validateStatus: function (status) {
           return status >= 200 && status < 500;
@@ -206,7 +206,6 @@ function App() {
       });
       
       console.log('Environment:', process.env.NODE_ENV);
-      console.log('API URL:', API_URL);
       console.log('Response status:', response.status);
       console.log('Response headers:', response.headers);
       console.log('Game data received successfully:', response.data);
