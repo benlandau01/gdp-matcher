@@ -20,6 +20,9 @@ import axios from 'axios';
 // Use environment variable for API URL with fallback
 const API_URL = process.env.REACT_APP_API_URL || 'https://gdp-matcher.onrender.com';
 
+// Add a console log to verify the API URL
+console.log('Using API URL:', API_URL);
+
 // Configure axios defaults
 axios.defaults.baseURL = API_URL;
 axios.defaults.headers.common['Accept'] = 'application/json';
